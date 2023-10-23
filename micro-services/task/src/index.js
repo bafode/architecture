@@ -1,8 +1,21 @@
 const express = require("express");
-const app     = express()
-const port    = 3000
+const fs      = require("fs");
+const path    = require("path");
+const dotenv=require('dotenv') 
+const colors =require('colors') 
+const cors=require('cors')
+const asyncHandler = require('express-async-handler')
+const connectDB=require("./config/db")
+const protect=require("./middlewares/authMiddleware")
 
+dotenv.config()
 
+connectDB()
+const app=express()
+
+app.use(cors())
+app.use(express.json())
+app.use(express.urlencoded({extended:true}))
 function extractRoutes(str) {
     const routes = [];
     let currentRoute = {};
@@ -23,7 +36,20 @@ function extractRoutes(str) {
     return routes;
 }
 
+const controller = require("./route")
 
-app.listen(port,() => {
-    console.log(`server is running on port: ${port}`);
-})
+for (const route of extractRoutes(controller.toString())) {
+    console.log("Controller",controller.name, route.url+":"+route.method,route.action, "registered")
+    app[route.method](route.url,protect,asyncHandler(controller[route.action]))
+}
+
+
+
+const PORT = process.env.PORT || 5001
+
+app.listen(
+  PORT,
+  console.log(
+    `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`.yellow.bold
+  )
+)
